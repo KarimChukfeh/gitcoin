@@ -1,12 +1,14 @@
 import random
 import pygithub3
-from git import repo
+import git
+from git import Repo
 
-VERIFIED_NODES = ['karimchukfeh', 'youssefe', 'osfalos', 'sanaknaki']
+VERIFIED_NODES = ['https://github.com/karimchukfeh', 'https://github.com/youssefe', 'https://github.com/osfalos', 'https://github.com/sanaknaki']
 
 def clone_repo_from_random_node():
     random_node = random.choice(VERIFIED_NODES)
-    print random_node
+    repo = Repo('')
+    git.Git("clone").clone('https://github.com/karimchukfeh/gitcoin')
 
 clone_repo_from_random_node()
 
