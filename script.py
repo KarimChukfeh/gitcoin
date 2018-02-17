@@ -8,11 +8,15 @@ import re
 
 VERIFIED_NODES = ['https://github.com/karimchukfeh', 'https://github.com/youssefe', 'https://github.com/osfalos', 'https://github.com/sanaknaki']
 
+def getLocalGitUser():
+    return "karimchukfeh"
+
 def clone_repo_from_random_node():
     random_node = random.choice(VERIFIED_NODES)
     if not os.path.isdir("Node"):
         os.makedirs("Node")
         git.Git("Node").clone('https://github.com/karimchukfeh/gitcoin')
+        broadcast_to_random_nodes('NewNodeNotification', )
 
 
 def remote_node_exists(organization, no_forks=True):
@@ -31,3 +35,4 @@ def remote_node_exists(organization, no_forks=True):
 
 if __name__ == '__main__':
     # clone_repo_from_random_node()
+    # remote_node_exists("karimchukfeh")
