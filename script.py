@@ -5,10 +5,21 @@ from git import Repo
 import os
 import re
 import threading
+import mysql.connector
+import time
 
-VERIFIED_NODES = ['https://github.com/karimchukfeh', 'https://github.com/youssefe', 'https://github.com/osfalos', 'https://github.com/sanaknaki']
 
-def get_git_user():
+db_config = {
+    'user' : 'bd40b5504b9f3e',
+    'password' : '0e48730d',
+    'database' : 'heroku_c5834a6e30a6592',
+    'host' : 'us-cdbr-iron-east-05.cleardb.net',
+    'port' : '3306'
+}
+
+VERIFIED_NODES = ['karimchukfeh', 'youssefe', 'osfalos', 'sanaknaki']
+
+def get_local_git_user():
     repo = Repo()
     conf_reader = repo.config_reader()
     return conf_reader.get_value('user', 'name')
@@ -17,8 +28,7 @@ def clone_repo_from_random_node():
     random_node = random.choice(VERIFIED_NODES)
     if not os.path.isdir("Node"):
         os.makedirs("Node")
-        git.Git("Node").clone('https://github.com/karimchukfeh/gitcoin')
-        broadcast_to_random_nodes('NewNodeNotification', )
+        git.Git("Node").clone('https://github.com/'+ random_node + '/gitcoin.git')
 
 
 def remote_node_exists(organization, no_forks=True):
@@ -26,75 +36,173 @@ def remote_node_exists(organization, no_forks=True):
     gh = pygithub3.Github(token='3ec8183955c53ad0acfbf3fdccbe874e561b4acd')
     all_repos = gh.repos.list(user=organization).all()
     for repo in all_repos:
-        # Don't print the urls for repos that are forks.
         if no_forks and repo.fork:
             continue
         if re.split('/', repo.clone_url)[-1] == "gitcoin.git":
             return True
     return False
 
-def creat_git_repo_init():
+def new_node_table_exists():
+    numberOfNodes = len(VERIFIED_NODES)
+    db_connection = mysql.connector.connect(**db_config)
+    cursor = db_connection.cursor()
+    query = "SELECT * FROM information_schema.tables WHERE TABLE_TYPE = 'BASE TABLE'"
+    cursor.execute(query, (db_config['database']))
+    result = cursor.fetchall()
+    for table in result:
+        if table[2] not in VERIFIED_NODES:
+            VERIFIED_NODES.append(table[2])
+
+
+def create_git_repo_init():
     gh = None
-    username = raw_input()
-    password = raw_input()
-    auth = dict(login=username, password=password)
-    gh = Github(**auth)
+    #print "enter your username"
+    #username = raw_input()
+    #print "enter your password"
+    #password = raw_input()
+    #auth = dict(login=username, password=password)
+    username = get_local_git_user()
+    print(username)
+    gh = pygithub3.Github(token="793a78550d17324ec385ec16d8b76ec6575b83c4")
     repo_name = 'gitcoin'
-    octocat = gh.users.get()
-    print octocat
-    get_user = gh.users.get()
-    gh.repos.create(dict(name='gitcoin', description='desc'))
+    gh.repos.create(dict(name=repo_name, description='desc'))
     #repos = gh.create_repo(repo_name)
     cloneUrl='https://github.com/karimchukfeh/gitcoin.git'
     localRepopath = 'clonetest/'
     repo = Repo.clone_from(cloneUrl, localRepopath)
-    another_url = 'https://github.com/osfalos/gitcoin.git'
-    remote = repo.create_remote('gitcoin', url=another_url)
+    another_url = 'https://github.com/'+username+'/gitcoin.git'
+    remote = repo.create_remote(repo_name, url=another_url)
     remote.push()
+    create_new_node_table(username)
     return True
 
-def node_broadcast_thread():
-    #update commit history
-    repo = Repo()
-    user_name = get_git_user()
-    commits = list(repo.iter_commits())
+def transaction_verification():
+    resp = null
+    while(resp == null):
+        resp = get_new_transaction_query()
+    if(verify_sender(resp[0],resp[2]) and verify_receiver(resp[1])):
+        #call broadcast
+        return True
+    else:
+        return False
 
-    commits = [commit for commit in commits if user_name in commit.meesage]
+def clone_repo(clone_username,type):
+    dir_name = "clone_"+type+"_"+clone_username
+    if not os.path.isdir(dir_name):
+        os.makedirs(dir_name)
+    cloneUrl="https://github.com/"+str(clone_username)+"/gitcoin.git"
+    localRepopath = dir_name+"/"
+    repo = Repo.clone_from(cloneUrl, localRepopath)
+    return repo
+
+def verify_sender(sender, amount):
+    repo_clone = clone_repo(sender,"sender_verif")
+    repo = Repo()
+    if((verif_commit_clone(repo,repo_clone))):
+        return False
+    return True
+
+def verify_receiver(reciever):
+    repo_clone =  clone_repo(reciever,"receiver_verif")
+    repo = Repo()
+    if((verif_commit_clone(repo,repo_clone))):
+        return False
+    return True
+
+def verif_commit_clone(repo,repo_clone):
+    commits_repo = list(repo.iter_commits('master'))
+    print(len(commits_repo))
+    commits_cloned_repo = list(repo_clone.iter_commits('master'))
+    print(len(commits_cloned_repo))
+    for commit in commits_repo:
+        for commit_compare in commits_cloned_repo:
+            if(not(commit.hexsha  == commit_compare.hexsha)):
+                return False
+    return True
+
+def get_new_transaction_query():
+    db_connection = mysql.connector.connect(**db_config)
+    cursor = db_connection.cursor()
+    query = "SELECT * FROM "+ db_config['database'] + "." + get_local_git_user()
+    cursor.execute(query, (db_config['database']))
+    result = cursor.fetchall()
+    db_connection.close()
+    # TODO exec query get result
+    last = result[-1]
+    if last[-1] == 'broadcasted':
+        db_connection.close()
+        return last
+    else:
+        db_connection.close()
+        return null
+
+
+def create_new_node_table(username):
+    db_connection = mysql.connector.connect(**db_config)
+    cursor = db_connection.cursor()
+    tableName = username.encode('utf8', 'replace')
+    query = "CREATE TABLE " + username + " (`transaction_id` VARCHAR(100) NOT NULL, `sender` VARCHAR(100) NULL, `reciever` VARCHAR(100) NULL, `amount` INT(100) NULL, `status` VARCHAR(45) NULL DEFAULT 'broadcasted', PRIMARY KEY (`transaction_id`));"
+    cursor.execute(query, (tableName))
+    db_connection.close()
+    return True
+
+def node_broadcast():
+    repo = Repo()
+    user_name = get_local_git_user()
+    commits = list(repo.iter_commits())
+    
+    commits = [commit for commit in commits if user_name in commit.message]
 
     if len(commits) > 0:
         #Make sure all transactions involving current user add up
         #and there are enough funds for the transaction to be made
         sum = 0
+        transactions = []
         for commit in commits:
             if commit.message != '':
                 arr = commit.message.split('-')
                 if user_name in arr[0]:
                     sum -= int(arr[2])
+                    transactions.append(commit)
                 elif user_name in arr[1]:
                     sum += int(arr[2])
-        if sum < 0
+
+        if sum < 0:
             print "Not Enough Funds for Transaction"
-
-        latest-commit = commits[-1]
-
-        f = open('log', 'a+')
-
-        #checks if the latest commit has already been broadcast
-        if latest-commit.message not in f.read():
-            f.write('BROADCASTING: ' + latest-commit.message + "\n")
-            
-            split-commit = latest-commit.split('-')
-            for node in VERIFIED_NODES:
-                if node != split-commit[0] or node != split-commit[1]:
-                    #hash send receiver amount status
-                    
-
-        f.close()
-
-def await_transaction_verification(commit_hash):
-
+        else:
+            for transaction in transactions:
+                f = open('log', 'a+')
+                #checks if the commit has already been broadcast
+                if ('BROADCASTING: ' + transaction.hexsha) not in f.read():
+                    db_connection = mysql.connector.connect(**db_config)
+                    cursor = db_connection.cursor()
+                    tableName = username.encode('utf8', 'replace')
+                    f.write('BROADCASTING: ' + transaction.hexsha + '\n')
+                    split_transaction = transaction.message.split('-')
+                    broadcast_targets = []
+                    #broadcast to all nodes
+                    for node in VERIFIED_NODES:
+                        if node != split_transaction[0] or node != split_transaction[1]:
+                            target_nodes.push(node)
+                            query = 'INSERT INTO ' + node + ' (transaction_id, sender, reciever, amount) VALUES (`{0}`, `{1}`, `{2}`, `{4}`)'.format(transaction.hexsha, split-commit[0], split-commit[1], split_transaction[2])
+                            cursor.execute(query, (tableName))
+                    #wait for all nodes to confirm broadcast
+                    confirmed_by_all = False
+                    while len(broadcast_targets) > 0:
+                        for target in broadcast_targets:
+                            query = 'SELECT status FROM ' + target + 'WHERE transaction_id = ' + transaction.hexsha
+                            cursor.execute(query, (tableName))
+                            for status in cursor:
+                                if status != 'broadcasted':
+                                    del broadcast_target[target]
+                        time.sleep(30)
+                    db_connection.close()
+                    f.close()
 
 if __name__ == '__main__':
     print "hi"
+    #node_broadcast()
     # clone_repo_from_random_node()
     # remote_node_exists("karimchukfeh")
+    new_node_table_exists()
+    # create_new_node_table("sanaknaki")
