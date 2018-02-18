@@ -4,7 +4,9 @@ import git
 from git import Repo
 import os
 import re
+import threading
 import mysql.connector
+import time
 
 
 db_config = {
@@ -144,9 +146,62 @@ def create_new_node_table(username):
     db_connection.close()
     return True
 
+def node_broadcast():
+    repo = Repo()
+    user_name = get_local_git_user()
+    commits = list(repo.iter_commits())
+    
+    commits = [commit for commit in commits if user_name in commit.message]
+
+    if len(commits) > 0:
+        #Make sure all transactions involving current user add up
+        #and there are enough funds for the transaction to be made
+        sum = 0
+        transactions = []
+        for commit in commits:
+            if commit.message != '':
+                arr = commit.message.split('-')
+                if user_name in arr[0]:
+                    sum -= int(arr[2])
+                    transactions.append(commit)
+                elif user_name in arr[1]:
+                    sum += int(arr[2])
+
+        if sum < 0:
+            print "Not Enough Funds for Transaction"
+        else:
+            for transaction in transactions:
+                f = open('log', 'a+')
+                #checks if the commit has already been broadcast
+                if ('BROADCASTING: ' + transaction.hexsha) not in f.read():
+                    db_connection = mysql.connector.connect(**db_config)
+                    cursor = db_connection.cursor()
+                    tableName = username.encode('utf8', 'replace')
+                    f.write('BROADCASTING: ' + transaction.hexsha + '\n')
+                    split_transaction = transaction.message.split('-')
+                    broadcast_targets = []
+                    #broadcast to all nodes
+                    for node in VERIFIED_NODES:
+                        if node != split_transaction[0] or node != split_transaction[1]:
+                            target_nodes.push(node)
+                            query = 'INSERT INTO ' + node + ' (transaction_id, sender, reciever, amount) VALUES (`{0}`, `{1}`, `{2}`, `{4}`)'.format(transaction.hexsha, split-commit[0], split-commit[1], split_transaction[2])
+                            cursor.execute(query, (tableName))
+                    #wait for all nodes to confirm broadcast
+                    confirmed_by_all = False
+                    while len(broadcast_targets) > 0:
+                        for target in broadcast_targets:
+                            query = 'SELECT status FROM ' + target + 'WHERE transaction_id = ' + transaction.hexsha
+                            cursor.execute(query, (tableName))
+                            for status in cursor:
+                                if status != 'broadcasted':
+                                    del broadcast_target[target]
+                        time.sleep(30)
+                    db_connection.close()
+                    f.close()
 
 if __name__ == '__main__':
     print "hi"
+    #node_broadcast()
     # clone_repo_from_random_node()
     # remote_node_exists("karimchukfeh")
     new_node_table_exists()
