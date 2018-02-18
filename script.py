@@ -138,9 +138,9 @@ def verif_commit_clone(repo,repo_clone):
     print(len(commits_repo))
     commits_cloned_repo = list(repo_clone.iter_commits('master'))
     print(len(commits_cloned_repo))
-    for commit in commits_repo:
-        for commit_compare in commits_cloned_repo:
-            if(not(commit.hexsha  == commit_compare.hexsha)):
+    for commit in range(len(commits_repo, -1)):
+        for commit_compare in range(len(commits_cloned_repo, -1)):
+            if(not(commits_repo[commit].hexsha  == commits_cloned_repo[commit_compare].hexsha)):
                 return False
     return True
 
