@@ -194,10 +194,12 @@ def node_broadcast():
                         for target in broadcast_targets:
                             query = 'SELECT status FROM ' + target + 'WHERE transaction_id = ' + transaction.hexsha
                             cursor.execute(query, (tableName))
-                            for status in cursor:
+                            result = cursor.fetchall()
+                            for status in result:
                                 if status != 'broadcasted':
                                     del broadcast_target[target]
                         time.sleep(30)
+                    cursor.close()
                     db_connection.close()
                     f.close()
 
