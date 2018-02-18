@@ -127,7 +127,6 @@ def get_new_transaction_query():
     cursor.execute(query, (db_config['database']))
     result = cursor.fetchall()
     db_connection.close()
-    # TODO exec query get result
     last = result[-1]
     if last[-1] == 'broadcasted':
         db_connection.close()
@@ -150,7 +149,7 @@ def node_broadcast():
     repo = Repo()
     user_name = get_local_git_user()
     commits = list(repo.iter_commits())
-    
+
     commits = [commit for commit in commits if user_name in commit.message]
 
     if len(commits) > 0:
