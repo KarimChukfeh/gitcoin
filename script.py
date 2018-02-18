@@ -78,7 +78,12 @@ def transaction_verification():
     resp = null
     while(resp == null):
         resp = get_new_transaction_query()
-    if(verify_sender(resp[0],resp[2]) and verify_receiver(resp[1])):
+    if(verify_sender(resp[1],resp[3]) and verify_receiver(resp[2])):
+        db_connection = mysql.connector.connect(**db_config)
+        cursor = db_connection.cursor()
+        query = "UPDATE "+ get_local_git_user() +"status = confirmed WHERE transaction_id = "+resp[0]
+        cursor.execute(query, (db_config['database']))
+        db_connection.close()
         return True
     else:
         return False
@@ -95,14 +100,36 @@ def clone_repo(clone_username,type):
 def verify_sender(sender, amount):
     repo_clone = clone_repo(sender,"sender_verif")
     repo = Repo()
-    if((verif_commit_clone(repo,repo_clone))):
+    if(not(verif_commit_clone(repo,repo_clone))):
+        return False
+    if(not(verify_amount(amount,repo_clone))):
+        return False
+    return True
+
+def verify_amount(amount,repo):
+    commits = list(repo.iter_commits())
+    commits = [commit for commit in commits if user_name in commit.message]
+    if len(commits) > 0:
+        #Make sure all transactions involving current user add up
+        #and there are enough funds for the transaction to be made
+        sum = 0
+        transactions = []
+        for commit in commits:
+            if commit.message != '':
+                arr = commit.message.split('-')
+                if user_name in arr[0]:
+                    sum -= int(arr[2])
+                    transactions.append(commit)
+                elif user_name in arr[1]:
+                    sum += int(arr[2])
+    if(amount>sum):
         return False
     return True
 
 def verify_receiver(reciever):
     repo_clone =  clone_repo(reciever,"receiver_verif")
     repo = Repo()
-    if((verif_commit_clone(repo,repo_clone))):
+    if(not(verif_commit_clone(repo,repo_clone))):
         return False
     return True
 
@@ -111,9 +138,9 @@ def verif_commit_clone(repo,repo_clone):
     print(len(commits_repo))
     commits_cloned_repo = list(repo_clone.iter_commits('master'))
     print(len(commits_cloned_repo))
-    for commit in commits_repo:
-        for commit_compare in commits_cloned_repo:
-            if(not(commit.hexsha  == commit_compare.hexsha)):
+    for commit in range(len(commits_repo, -1)):
+        for commit_compare in range(len(commits_cloned_repo, -1)):
+            if(not(commits_repo[commit].hexsha  == commits_cloned_repo[commit_compare].hexsha)):
                 return False
     return True
 
