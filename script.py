@@ -52,8 +52,12 @@ def listen_for_new_node():
     db_connection.close()
     print len(result)
 
+<<<<<<< HEAD
 
 def create_git_repo_init():
+=======
+def creat_git_repo_init():
+>>>>>>> 09c78f16ef08afdfd6e2e6700cc1a53aa12ce4eb
     gh = None
     username = raw_input()
     password = raw_input()
@@ -73,7 +77,10 @@ def create_git_repo_init():
     remote.push()
     return True
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 09c78f16ef08afdfd6e2e6700cc1a53aa12ce4eb
 if __name__ == '__main__':
     print "hi"
     # clone_repo_from_random_node()
