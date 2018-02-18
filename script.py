@@ -4,12 +4,14 @@ import git
 from git import Repo
 import os
 import re
-
+import threading
 
 VERIFIED_NODES = ['https://github.com/karimchukfeh', 'https://github.com/youssefe', 'https://github.com/osfalos', 'https://github.com/sanaknaki']
 
-def getLocalGitUser():
-    return "karimchukfeh"
+def get_git_user():
+    repo = Repo()
+    conf_reader = repo.config_reader()
+    return conf_reader.get_value('user', 'name')
 
 def clone_repo_from_random_node():
     random_node = random.choice(VERIFIED_NODES)
@@ -51,7 +53,47 @@ def creat_git_repo_init():
     remote.push()
     return True
 
-    
+def node_broadcast_thread():
+    #update commit history
+    repo = Repo()
+    user_name = get_git_user()
+    commits = list(repo.iter_commits())
+
+    commits = [commit for commit in commits if user_name in commit.meesage]
+
+    if len(commits) > 0:
+        #Make sure all transactions involving current user add up
+        #and there are enough funds for the transaction to be made
+        sum = 0
+        for commit in commits:
+            if commit.message != '':
+                arr = commit.message.split('-')
+                if user_name in arr[0]:
+                    sum -= int(arr[2])
+                elif user_name in arr[1]:
+                    sum += int(arr[2])
+        if sum < 0
+            print "Not Enough Funds for Transaction"
+
+        latest-commit = commits[-1]
+
+        f = open('log', 'a+')
+
+        #checks if the latest commit has already been broadcast
+        if latest-commit.message not in f.read():
+            f.write('BROADCASTING: ' + latest-commit.message + "\n")
+            
+            split-commit = latest-commit.split('-')
+            for node in VERIFIED_NODES:
+                if node != split-commit[0] or node != split-commit[1]:
+                    #hash send receiver amount status
+                    
+
+        f.close()
+
+def await_transaction_verification(commit_hash):
+
+
 if __name__ == '__main__':
     print "hi"
     # clone_repo_from_random_node()
