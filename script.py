@@ -4,7 +4,8 @@ import git
 from git import Repo
 import os
 import re
-
+from pygithub3 import Github
+#from github3 import GitHub
 
 VERIFIED_NODES = ['https://github.com/karimchukfeh', 'https://github.com/youssefe', 'https://github.com/osfalos', 'https://github.com/sanaknaki']
 
@@ -21,19 +22,27 @@ def clone_repo_from_random_node():
 
 def remote_node_exists(organization, no_forks=True):
     gh = None
-    gh = pygithub3.Github(token='3ec8183955c53ad0acfbf3fdccbe874e561b4acd')
-    all_repos = gh.repos.list(user=organization).all()
-    for repo in all_repos:
-        # Don't print the urls for repos that are forks.
-        if no_forks and repo.fork:
-            continue
-        if re.split('/', repo.clone_url)[-1] == "gitcoin.git":
-            return True
-    return False
+    username = raw_input()
+    password = raw_input()
+    auth = dict(login=username, password=password)
+    gh = Github(**auth)
+    repo_name = 'gitcoin'
+    octocat = gh.users.get()
+    print octocat
+    get_user = gh.users.get()
+    gh.repos.create(dict(name='gitcoin', description='desc'))
+    #repos = gh.create_repo(repo_name)
+    cloneUrl='https://github.com/karimchukfeh/gitcoin.git'
+    localRepopath = 'clonetest/'
+    repo = Repo.clone_from(cloneUrl, localRepopath)
+    another_url = 'https://github.com/osfalos/gitcoin.git'
+    remote = repo.create_remote('gitcoin', url=another_url)
+    remote.push()
 
 
-
-if __name__ == '__main__':
-    print "hi"
+#if __name__ == '__main__':
+    #print "hi"
     # clone_repo_from_random_node()
-    # remote_node_exists("karimchukfeh")
+
+
+remote_node_exists("karimchukfeh")
