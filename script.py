@@ -40,7 +40,6 @@ def remote_node_exists(organization, no_forks=True):
             return True
     return False
 
-<<<<<<< HEAD
 def listen_for_new_node():
     numberOfNodes = len(VERIFIED_NODES)
 
@@ -53,9 +52,6 @@ def listen_for_new_node():
     print result
     db_connection.close()
 
-
-
-=======
 def creat_git_repo_init():
     gh = None
     username = raw_input()
@@ -76,8 +72,6 @@ def creat_git_repo_init():
     remote.push()
     return True
 
-    
->>>>>>> 4a531b504510e96aefc71ddae8a5100095deaf2a
 if __name__ == '__main__':
     print "hi"
     # clone_repo_from_random_node()
