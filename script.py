@@ -227,15 +227,11 @@ def node_broadcast():
                     f.close()
 
 
-threads = []
 if __name__ == '__main__':
     print "hi"
-    register = False
     if not new_node_table_exists():
         if create_git_repo_init():
             t1 = threading.Thread(target = node_broadcast())
             t2 = threading.Thread(target = transaction_verification())
-            threads.append(t1)
-            threads.append(t2)
             t1.start()
             t2.start()
