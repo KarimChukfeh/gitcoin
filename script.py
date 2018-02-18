@@ -46,8 +46,8 @@ def new_node_table_exists():
     cursor.execute(query, (db_config['database']))
     result = cursor.fetchall()
     for table in result:
-
-    db_connection.close()
+        if table[2] not in VERIFIED_NODES:
+            VERIFIED_NODES.append(table[2])
 
 
 def create_git_repo_init():
