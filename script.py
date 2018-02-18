@@ -9,6 +9,7 @@ import mysql.connector
 import time
 
 
+
 db_config = {
     'user' : 'bd40b5504b9f3e',
     'password' : '0e48730d',
@@ -17,23 +18,22 @@ db_config = {
     'port' : '3306'
 }
 
-VERIFIED_NODES = ['karimchukfeh', 'youssefe', 'osfalos', 'sanaknaki']
+VERIFIED_NODES = ['karimchukfeh', 'youssefe']
 
 def get_local_git_user():
-    repo = Repo()
+    if not os.path.isdir('.git'):
+        bare_repo = Repo.init('start',bare=True)
+    repo = Repo('start')
     conf_reader = repo.config_reader()
     return conf_reader.get_value('user', 'name')
 
 def clone_repo_from_random_node():
     random_node = random.choice(VERIFIED_NODES)
-    if not os.path.isdir("Node"):
-        os.makedirs("Node")
-        git.Git("Node").clone('https://github.com/'+ random_node + '/gitcoin.git')
 
 
 def remote_node_exists(organization, no_forks=True):
     gh = None
-    gh = pygithub3.Github(token='3ec8183955c53ad0acfbf3fdccbe874e561b4acd')
+    gh = pygithub3.Github(token='793a78550d17324ec385ec16d8b76ec6575b83c4')
     all_repos = gh.repos.list(user=organization).all()
     for repo in all_repos:
         if no_forks and repo.fork:
@@ -61,19 +61,21 @@ def create_git_repo_init():
     #print "enter your password"
     #password = raw_input()
     #auth = dict(login=username, password=password)
-    username = get_local_git_user()
-    print(username)
-    gh = pygithub3.Github(token="793a78550d17324ec385ec16d8b76ec6575b83c4")
-    repo_name = 'gitcoin'
-    gh.repos.create(dict(name=repo_name, description='desc'))
-    #repos = gh.create_repo(repo_name)
-    cloneUrl='https://github.com/karimchukfeh/gitcoin.git'
-    localRepopath = 'clonetest/'
-    repo = Repo.clone_from(cloneUrl, localRepopath)
-    another_url = 'https://github.com/'+username+'/gitcoin.git'
-    remote = repo.create_remote(repo_name, url=another_url)
-    remote.push()
-    create_new_node_table(username)
+    if not os.path.isdir("start/Node"):
+        os.makedirs("start/Node")
+        username = get_local_git_user()
+        gh = pygithub3.Github(token="13b4f3833c332c5b28890c8b20b1c8eb058c0232")
+        repo_name = 'gitcoin'
+        gh.repos.create(dict(name=repo_name, description='desc'))
+        #repos = gh.create_repo(repo_name)
+        random_node = random.choice(VERIFIED_NODES)
+        cloneUrl='https://github.com/'+ random_node +'/gitcoin.git'
+        localRepopath = 'start/Node/'
+        repo = Repo.clone_from(cloneUrl, localRepopath)
+        another_url = 'https://github.com/'+username+'/gitcoin.git'
+        remote = repo.create_remote(repo_name, url=another_url)
+        remote.push()
+        create_new_node_table(username)
     return True
 
 def transaction_verification():
@@ -127,6 +129,7 @@ def get_new_transaction_query():
     cursor.execute(query, (db_config['database']))
     result = cursor.fetchall()
     db_connection.close()
+    # TODO exec query get result
     last = result[-1]
     if last[-1] == 'broadcasted':
         db_connection.close()
