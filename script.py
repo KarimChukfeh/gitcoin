@@ -18,10 +18,8 @@ db_config = {
     'port' : '3306'
 }
 
-VERIFIED_NODES = get_verified_nodes()
 
 def get_verified_nodes():
-    numberOfNodes = len(VERIFIED_NODES)
     db_connection = mysql.connector.connect(**db_config)
     cursor = db_connection.cursor()
     query = "SELECT * FROM information_schema.tables WHERE TABLE_TYPE = 'BASE TABLE'"
@@ -31,6 +29,8 @@ def get_verified_nodes():
     for table in result:
         out.append(table[2])
     return out
+
+VERIFIED_NODES = get_verified_nodes()
 
 def get_local_git_user():
     if not os.path.isdir('.git'):
@@ -198,6 +198,14 @@ def node_broadcast():
                     db_connection.close()
                     f.close()
 
+
+threads = []
 if __name__ == '__main__':
     print "hi"
     create_new_node_table(get_local_git_user())
+    t1 = threading.Thread(target = node_broadcast())
+    t2 = threading.Thread(target = transaction_verification())
+    threads.append(t1)
+    threads.append(t2)
+    t1.start()
+    t2.start()
