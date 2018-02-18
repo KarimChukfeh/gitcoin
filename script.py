@@ -31,8 +31,27 @@ def remote_node_exists(organization, no_forks=True):
             return True
     return False
 
+def creat_git_repo_init():
+    gh = None
+    username = raw_input()
+    password = raw_input()
+    auth = dict(login=username, password=password)
+    gh = Github(**auth)
+    repo_name = 'gitcoin'
+    octocat = gh.users.get()
+    print octocat
+    get_user = gh.users.get()
+    gh.repos.create(dict(name='gitcoin', description='desc'))
+    #repos = gh.create_repo(repo_name)
+    cloneUrl='https://github.com/karimchukfeh/gitcoin.git'
+    localRepopath = 'clonetest/'
+    repo = Repo.clone_from(cloneUrl, localRepopath)
+    another_url = 'https://github.com/osfalos/gitcoin.git'
+    remote = repo.create_remote('gitcoin', url=another_url)
+    remote.push()
+    return True
 
-
+    
 if __name__ == '__main__':
     print "hi"
     # clone_repo_from_random_node()
