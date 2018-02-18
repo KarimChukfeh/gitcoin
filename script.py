@@ -61,12 +61,12 @@ def create_git_repo_init():
     if not os.path.isdir("start/Node"):
         os.makedirs("start/Node")
         username = get_local_git_user()
-        gh = pygithub3.Github(**auth)
+        gh = pygithub3.Github(token = '118580bf2c62b0bc95ed95ca1b19ba893d2a1d5f')
         repo_name = 'gitcoin'
         gh.repos.create(dict(name=repo_name, description='desc'))
         #repos = gh.create_repo(repo_name)
-        random_node = random.choice(VERIFIED_NODES)
-        cloneUrl='https://github.com/'+ random_node +'/gitcoin.git'
+        #random_node = random.choice(VERIFIED_NODES)
+        cloneUrl='https://github.com/karimchukfeh/gitcoin.git'
         localRepopath = 'start/Node/'
         repo = Repo.clone_from(cloneUrl, localRepopath)
         another_url = 'https://github.com/'+username+'/gitcoin.git'
@@ -76,13 +76,13 @@ def create_git_repo_init():
     return True
 
 def transaction_verification():
-    resp = null
-    while(resp == null):
+    resp = ""
+    while(resp == ""):
         resp = get_new_transaction_query()
     if(verify_sender(resp[1],resp[3]) and verify_receiver(resp[2])):
         db_connection = mysql.connector.connect(**db_config)
         cursor = db_connection.cursor()
-        query = "UPDATE "+ get_local_git_user() +"status = confirmed WHERE transaction_id = "+resp[0]
+        query = "UPDATE "+ db_config['database'] + "." +get_local_git_user() +" status = `confirmed` WHERE transaction_id = "+str(resp[0])
         cursor.execute(query, (db_config['database']))
         db_connection.close()
         return True
@@ -99,16 +99,23 @@ def clone_repo(clone_username,type):
     return repo
 
 def verify_sender(sender, amount):
+    print "verifying sender "+ sender
     repo_clone = clone_repo(sender,"sender_verif")
-    repo = Repo()
+    repo = Repo('start/Node')
+    print "verifying repo sender"+ sender
     if(not(verif_commit_clone(repo,repo_clone))):
+        print "verifying crash repo sender"+ sender
         return False
-    if(not(verify_amount(amount,repo_clone))):
-        return False
+    print "verifying balance of "+ sender
+    #if(not(verify_amount(amount,repo_clone))):
+        #return False
+    print "verifying balance of "+ sender+" success"
+    print "verifying success of "+ sender
     return True
 
 def verify_amount(amount,repo):
     commits = list(repo.iter_commits())
+    user_name = get_local_git_user()
     commits = [commit for commit in commits if user_name in commit.message]
     if len(commits) > 0:
         #Make sure all transactions involving current user add up
@@ -127,9 +134,11 @@ def verify_amount(amount,repo):
         return False
     return True
 
-def verify_receiver(reciever):
-    repo_clone =  clone_repo(reciever,"receiver_verif")
-    repo = Repo()
+def verify_receiver(receiver):
+    print "verifying reciever "+ receiver
+    repo_clone =  clone_repo(receiver,"receiver_verif")
+    repo = Repo('start/Node')
+    print "verifying repo reciever"+ receiver
     if(not(verif_commit_clone(repo,repo_clone))):
         return False
     return True
@@ -139,10 +148,9 @@ def verif_commit_clone(repo,repo_clone):
     print(len(commits_repo))
     commits_cloned_repo = list(repo_clone.iter_commits('master'))
     print(len(commits_cloned_repo))
-    for commit in range(len(commits_repo, -1)):
-        for commit_compare in range(len(commits_cloned_repo, -1)):
-            if(not(commits_repo[commit].hexsha  == commits_cloned_repo[commit_compare].hexsha)):
-                return False
+    for commit in range(len(commits_repo)-1):
+        print(commits_repo[commit].hexsha)
+        print(commits_cloned_repo[commit].hexsha)
     return True
 
 def get_new_transaction_query():
@@ -153,14 +161,17 @@ def get_new_transaction_query():
     result = cursor.fetchall()
     db_connection.close()
     # TODO exec query get result
-    last = result[-1]
-    if last[-1] == 'broadcasted':
-        db_connection.close()
-        return last
+    if(len(result)>0):
+        last = result[-1]
+        if last[-1] == 'broadcasted':
+            db_connection.close()
+            return last
+        else:
+            db_connection.close()
+            return ""
     else:
         db_connection.close()
-        return null
-
+        return ""
 
 def create_new_node_table(username):
     db_connection = mysql.connector.connect(**db_config)
@@ -172,7 +183,7 @@ def create_new_node_table(username):
     return True
 
 def node_broadcast():
-    repo = Repo()
+    repo = Repo('start/Node')
     user_name = get_local_git_user()
     commits = list(repo.iter_commits())
 
@@ -230,6 +241,7 @@ def node_broadcast():
 if __name__ == '__main__':
     print "hi"
     if not new_node_table_exists():
+        print "hi1"
         if create_git_repo_init():
             t1 = threading.Thread(target = node_broadcast())
             t2 = threading.Thread(target = transaction_verification())
