@@ -40,23 +40,20 @@ def remote_node_exists(organization, no_forks=True):
             return True
     return False
 
-<<<<<<< HEAD
 def listen_for_new_node():
     numberOfNodes = len(VERIFIED_NODES)
 
     db_connection = mysql.connector.connect(**db_config)
     cursor = db_connection.cursor()
-    query = "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=%s;"
+    query = "SELECT * FROM information_schema.tables WHERE TABLE_TYPE = 'BASE TABLE'"
 
     cursor.execute(query, (db_config['database']))
-    result = cursor.fetch()
-    print result
+    result = cursor.fetchall()
     db_connection.close()
+    print len(result)
 
 
-
-=======
-def creat_git_repo_init():
+def create_git_repo_init():
     gh = None
     username = raw_input()
     password = raw_input()
@@ -76,8 +73,7 @@ def creat_git_repo_init():
     remote.push()
     return True
 
-    
->>>>>>> 4a531b504510e96aefc71ddae8a5100095deaf2a
+
 if __name__ == '__main__':
     print "hi"
     # clone_repo_from_random_node()
