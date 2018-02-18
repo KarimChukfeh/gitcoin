@@ -40,15 +40,16 @@ def get_local_git_user():
     return conf_reader.get_value('user', 'name')
 
 def new_node_table_exists():
-    numberOfNodes = len(VERIFIED_NODES)
     db_connection = mysql.connector.connect(**db_config)
     cursor = db_connection.cursor()
     query = "SELECT * FROM information_schema.tables WHERE TABLE_TYPE = 'BASE TABLE'"
     cursor.execute(query, (db_config['database']))
     result = cursor.fetchall()
+    out = False
     for table in result:
-        if table[2] not in VERIFIED_NODES:
-            VERIFIED_NODES.append(table[2])
+        if table[2] in VERIFIED_NODES:
+            out = True
+    return out
 
 def create_git_repo_init():
     gh = None
@@ -229,10 +230,12 @@ def node_broadcast():
 threads = []
 if __name__ == '__main__':
     print "hi"
-    create_new_node_table(get_local_git_user())
-    t1 = threading.Thread(target = node_broadcast())
-    t2 = threading.Thread(target = transaction_verification())
-    threads.append(t1)
-    threads.append(t2)
-    t1.start()
-    t2.start()
+    register = False
+    if not new_node_table_exists():
+        if create_git_repo_init():
+            t1 = threading.Thread(target = node_broadcast())
+            t2 = threading.Thread(target = transaction_verification())
+            threads.append(t1)
+            threads.append(t2)
+            t1.start()
+            t2.start()
