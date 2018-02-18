@@ -18,7 +18,19 @@ db_config = {
     'port' : '3306'
 }
 
-VERIFIED_NODES = ['karimchukfeh', 'youssefe']
+VERIFIED_NODES = get_verified_nodes()
+
+def get_verified_nodes():
+    numberOfNodes = len(VERIFIED_NODES)
+    db_connection = mysql.connector.connect(**db_config)
+    cursor = db_connection.cursor()
+    query = "SELECT * FROM information_schema.tables WHERE TABLE_TYPE = 'BASE TABLE'"
+    cursor.execute(query, (db_config['database']))
+    result = cursor.fetchall()
+    out = []
+    for table in result:
+        out.append(table[2])
+    return out
 
 def get_local_git_user():
     if not os.path.isdir('.git'):
@@ -26,21 +38,6 @@ def get_local_git_user():
     repo = Repo('start')
     conf_reader = repo.config_reader()
     return conf_reader.get_value('user', 'name')
-
-def clone_repo_from_random_node():
-    random_node = random.choice(VERIFIED_NODES)
-
-
-def remote_node_exists(organization, no_forks=True):
-    gh = None
-    gh = pygithub3.Github(token='793a78550d17324ec385ec16d8b76ec6575b83c4')
-    all_repos = gh.repos.list(user=organization).all()
-    for repo in all_repos:
-        if no_forks and repo.fork:
-            continue
-        if re.split('/', repo.clone_url)[-1] == "gitcoin.git":
-            return True
-    return False
 
 def new_node_table_exists():
     numberOfNodes = len(VERIFIED_NODES)
@@ -53,18 +50,17 @@ def new_node_table_exists():
         if table[2] not in VERIFIED_NODES:
             VERIFIED_NODES.append(table[2])
 
-
 def create_git_repo_init():
     gh = None
-    #print "enter your username"
-    #username = raw_input()
-    #print "enter your password"
-    #password = raw_input()
-    #auth = dict(login=username, password=password)
+    print "enter your username"
+    username = raw_input()
+    print "enter your password"
+    password = raw_input()
+    auth = dict(login=username, password=password)
     if not os.path.isdir("start/Node"):
         os.makedirs("start/Node")
         username = get_local_git_user()
-        gh = pygithub3.Github(token="13b4f3833c332c5b28890c8b20b1c8eb058c0232")
+        gh = pygithub3.Github(**auth)
         repo_name = 'gitcoin'
         gh.repos.create(dict(name=repo_name, description='desc'))
         #repos = gh.create_repo(repo_name)
@@ -83,7 +79,6 @@ def transaction_verification():
     while(resp == null):
         resp = get_new_transaction_query()
     if(verify_sender(resp[0],resp[2]) and verify_receiver(resp[1])):
-        #call broadcast
         return True
     else:
         return False
@@ -205,8 +200,4 @@ def node_broadcast():
 
 if __name__ == '__main__':
     print "hi"
-    #node_broadcast()
-    # clone_repo_from_random_node()
-    # remote_node_exists("karimchukfeh")
-    new_node_table_exists()
-    # create_new_node_table("sanaknaki")
+    create_new_node_table(get_local_git_user())
