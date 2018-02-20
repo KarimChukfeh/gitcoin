@@ -11,11 +11,11 @@ import time
 
 
 db_config = {
-    'user' : 'bd40b5504b9f3e',
-    'password' : '0e48730d',
-    'database' : 'heroku_c5834a6e30a6592',
-    'host' : 'us-cdbr-iron-east-05.cleardb.net',
-    'port' : '3306'
+    'user' : '',
+    'password' : '',
+    'database' : '',
+    'host' : '',
+    'port' : ''
 }
 
 
@@ -61,7 +61,7 @@ def create_git_repo_init():
     if not os.path.isdir("start/Node"):
         os.makedirs("start/Node")
         username = get_local_git_user()
-        gh = pygithub3.Github(token = '118580bf2c62b0bc95ed95ca1b19ba893d2a1d5f')
+        gh = pygithub3.Github(token = '')
         repo_name = 'gitcoin'
         gh.repos.create(dict(name=repo_name, description='desc'))
         #repos = gh.create_repo(repo_name)
